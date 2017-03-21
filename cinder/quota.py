@@ -640,6 +640,195 @@ class NestedDbQuotaDriver(DbQuotaDriver):
 
         return reserved
 
+class NoopQuotaDriver(object):
+
+    def get_by_project(self, context, project_id, resource):
+        """Get a specific quota by project."""
+        # Unlimited
+        return -1
+
+    def get_by_class(self, context, quota_class, resource):
+        """Get a specific quota by quota class."""
+        # Unlimited
+        return -1
+
+    def get_defaults(self, context, resources):
+        """Given a list of resources, retrieve the default quotas.
+
+        :param context: The request context, for access checks.
+        :param resources: A dictionary of the registered resources.
+        """
+        quotas = {}
+        for resource in resources.values():
+            quotas[resource.name] = -1
+        return quotas
+
+    def get_class_quotas(self, context, resources, quota_class,
+                         defaults=True):
+        """Given a list of resources, retrieve the quotas for the given
+        quota class.
+
+        :param context: The request context, for access checks.
+        :param resources: A dictionary of the registered resources.
+        :param quota_class: The name of the quota class to return
+                            quotas for.
+        :param defaults: If True, the default value will be reported
+                         if there is no specific value for the
+                         resource.
+        """
+        quotas = {}
+        for resource in resources.values():
+            quotas[resource.name] = -1
+        return quotas
+
+    def _get_noop_quotas(self, resources, usages=None, remains=False):
+        quotas = {}
+        for resource in resources.values():
+            quotas[resource.name] = {}
+            quotas[resource.name]['limit'] = -1
+            if usages:
+                quotas[resource.name]['in_use'] = -1
+                quotas[resource.name]['reserved'] = -1
+            if remains:
+                quotas[resource.name]['remains'] = -1
+        return quotas
+
+    def get_project_quotas(self, context, resources, project_id,
+                           quota_class=None, defaults=True,
+                           usages=True, remains=False):
+        """Given a list of resources, retrieve the quotas for the given
+        project.
+
+        :param context: The request context, for access checks.
+        :param resources: A dictionary of the registered resources.
+        :param project_id: The ID of the project to return quotas for.
+        :param quota_class: If project_id != context.project_id, the
+                            quota class cannot be determined.  This
+                            parameter allows it to be specified.  It
+                            will be ignored if project_id ==
+                            context.project_id.
+        :param defaults: If True, the quota class value (or the
+                         default value, if there is no value from the
+                         quota class) will be reported if there is no
+                         specific value for the resource.
+        :param usages: If True, the current in_use and reserved counts
+                       will also be returned.
+        :param remains: If True, the current remains of the project will
+                        will be returned.
+        """
+        return self._get_noop_quotas(resources, usages=usages, remains=remains)
+
+    def get_settable_quotas(self, context, resources, project_id):
+        """Given a list of resources, retrieve the range of settable quotas for
+        the given project.
+
+        :param context: The request context, for access checks.
+        :param resources: A dictionary of the registered resources.
+        :param project_id: The ID of the project to return quotas for.
+        """
+        quotas = {}
+        for resource in resources.values():
+            quotas[resource.name] = {'minimum': 0, 'maximum': -1}
+        return quotas
+
+    def limit_check(self, context, resources, values, project_id=None):
+        """Check simple quota limits.
+
+        For limits--those quotas for which there is no usage
+        synchronization function--this method checks that a set of
+        proposed values are permitted by the limit restriction.
+
+        This method will raise a QuotaResourceUnknown exception if a
+        given resource is unknown or if it is not a simple limit
+        resource.
+
+        If any of the proposed values is over the defined quota, an
+        OverQuota exception will be raised with the sorted list of the
+        resources which are too high.  Otherwise, the method returns
+        nothing.
+
+        :param context: The request context, for access checks.
+        :param resources: A dictionary of the registered resources.
+        :param values: A dictionary of the values to check against the
+                       quota.
+        :param project_id: Specify the project_id if current context
+                           is admin and admin wants to impact on
+                           common user's tenant.
+        """
+        pass
+
+    def reserve(self, context, resources, deltas, expire=None,
+                project_id=None):
+        """Check quotas and reserve resources.
+
+        For counting quotas--those quotas for which there is a usage
+        synchronization function--this method checks quotas against
+        current usage and the desired deltas.
+
+        This method will raise a QuotaResourceUnknown exception if a
+        given resource is unknown or if it does not have a usage
+        synchronization function.
+
+        If any of the proposed values is over the defined quota, an
+        OverQuota exception will be raised with the sorted list of the
+        resources which are too high.  Otherwise, the method returns a
+        list of reservation UUIDs which were created.
+
+        :param context: The request context, for access checks.
+        :param resources: A dictionary of the registered resources.
+        :param deltas: A dictionary of the proposed delta changes.
+        :param expire: An optional parameter specifying an expiration
+                       time for the reservations.  If it is a simple
+                       number, it is interpreted as a number of
+                       seconds and added to the current time; if it is
+                       a datetime.timedelta object, it will also be
+                       added to the current time.  A datetime.datetime
+                       object will be interpreted as the absolute
+                       expiration time.  If None is specified, the
+                       default expiration time set by
+                       --default-reservation-expire will be used (this
+                       value will be treated as a number of seconds).
+        :param project_id: Specify the project_id if current context
+                           is admin and admin wants to impact on
+                           common user's tenant.
+        """
+        return []
+
+    def commit(self, context, reservations, project_id=None):
+        """Commit reservations.
+
+        :param context: The request context, for access checks.
+        :param reservations: A list of the reservation UUIDs, as
+                             returned by the reserve() method.
+        :param project_id: Specify the project_id if current context
+                           is admin and admin wants to impact on
+                           common user's tenant.
+        """
+        pass
+
+    def rollback(self, context, reservations, project_id=None):
+        """Roll back reservations.
+
+        :param context: The request context, for access checks.
+        :param reservations: A list of the reservation UUIDs, as
+                             returned by the reserve() method.
+        :param project_id: Specify the project_id if current context
+                           is admin and admin wants to impact on
+                           common user's tenant.
+        """
+        pass
+
+
+    def expire(self, context):
+        """Expire reservations.
+
+        Explores all currently existing reservations and rolls back
+        any that have expired.
+
+        :param context: The request context, for access checks.
+        """
+        pass
+
 
 class BaseResource(object):
     """Describe a single resource for quota checking."""
