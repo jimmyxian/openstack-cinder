@@ -522,7 +522,11 @@ def walk_class_hierarchy(clazz, encountered=None):
 
 
 def get_root_helper():
-    return 'sudo cinder-rootwrap %s' % CONF.rootwrap_config
+    if CONF.disable_sudo_rootwrap:
+        cmd = ''
+    else:
+        cmd = 'sudo cinder-rootwrap %s' % CONF.rootwrap_config
+    return cmd
 
 
 def brick_get_connector_properties(multipath=False, enforce_multipath=False):
