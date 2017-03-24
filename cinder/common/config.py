@@ -152,9 +152,12 @@ global_opts = [
                default='month',
                help='Time period for which to generate volume usages. '
                     'The options are hour, day, month, or year.'),
-    cfg.BoolOpt('disable_sudo_rootwrap',
+    cfg.BoolOpt('disable_rootwrap',
                 default=True,
-                help='Run commands without sudo rootwrap'),
+                help='Run commands without rootwrap'),
+    cfg.StrOpt('rootwrap_sudo_command',
+                default='sudo',
+                help='Customized sudo command against rootwrap'),
     cfg.StrOpt('rootwrap_config',
                default='/etc/cinder/rootwrap.conf',
                help='Path to the rootwrap configuration file to use for '
