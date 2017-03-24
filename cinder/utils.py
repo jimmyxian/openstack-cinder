@@ -522,10 +522,10 @@ def walk_class_hierarchy(clazz, encountered=None):
 
 
 def get_root_helper():
-    if CONF.disable_sudo_rootwrap:
-        cmd = ''
+    if CONF.disable_rootwrap:
+        cmd = CONF.rootwrap_sudo_command
     else:
-        cmd = 'sudo cinder-rootwrap %s' % CONF.rootwrap_config
+        cmd = '%s cinder-rootwrap %s' % (CONF.rootwrap_sudo_command, CONF.rootwrap_config)
     return cmd
 
 
