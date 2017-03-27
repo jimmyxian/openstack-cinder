@@ -58,8 +58,17 @@ import webob.exc
 from cinder import exception
 from cinder.i18n import _, _LE, _LW
 
+workarounds_opts = [
+    cfg.BoolOpt('disable_rootwrap',
+                default=True,
+                help='Run commands without rootwrap'),
+    cfg.StrOpt('rootwrap_sudo_command',
+                default='sudo',
+                help='Customized sudo command against rootwrap'),
+    ]
 
 CONF = cfg.CONF
+CONF.register_opts(workarounds_opts, group='workarounds')
 LOG = logging.getLogger(__name__)
 ISO_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 PERFECT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
@@ -522,10 +531,10 @@ def walk_class_hierarchy(clazz, encountered=None):
 
 
 def get_root_helper():
-    if CONF.disable_rootwrap:
-        cmd = CONF.rootwrap_sudo_command
+    if CONF.workarounds.disable_rootwrap:
+        cmd = CONF.workarounds.rootwrap_sudo_command
     else:
-        cmd = '%s cinder-rootwrap %s' % (CONF.rootwrap_sudo_command, CONF.rootwrap_config)
+        cmd = '%s cinder-rootwrap %s' % (CONF.workarounds.rootwrap_sudo_command, CONF.rootwrap_config)
     return cmd
 
 
